@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include "NimBLEDevice.h"
 
 #define BLUE 5   
 #define GREEN 4
@@ -7,79 +8,106 @@
 #define GREEN2 19
 #define RED2 18
 
-int delayTime = 10;
-int redValue;
-int greenValue;
-int blueValue;
-int red2Value;
-int green2Value;
-int blue2Value;
+#define SERVICE_UUID "093fe01c-c46c-4e24-94ec-279a1b837d06"
+#define CHARACTERISTIC_TURN_ON_OFF_UUID "56a4dcee-fe97-4f04-be3e-cec59388d516"
+#define CHARACTERISTIC_RGB_UUID "5a206a7c-2b58-4171-984d-3d7ac3e10a58"
+
+int redValue = 255;
+int greenValue = 165;
+int blueValue = 0;
+bool isTurnOn = false;
+
+class ServerCallBacks : public NimBLEServerCallbacks {
+
+  void onDisconnect(NimBLEServer* pServer, NimBLEConnInfo& connInfo, int reason) {
+        pServer->startAdvertising();
+    }
+
+} serverCallBacks;
+
+class CharacteristicsCallBacks: public NimBLECharacteristicCallbacks {
+
+  void onWrite(NimBLECharacteristic *pCharacteristic, NimBLEConnInfo &conninfo) {
+    std::string uuid = pCharacteristic->getUUID().toString();
+    std::string value = pCharacteristic->getValue();
+
+    if(uuid == CHARACTERISTIC_TURN_ON_OFF_UUID) {
+      if(value[0] == 0) {
+        isTurnOn = false;
+        analogWrite(RED, 0);
+        analogWrite(RED2, 0);
+        analogWrite(BLUE, 0);
+        analogWrite(BLUE2, 0);
+        analogWrite(GREEN, 0);
+        analogWrite(GREEN2, 0);
+      } else if (value[0] == 1) {
+        isTurnOn = true;
+        analogWrite(RED, redValue);
+        analogWrite(RED2, redValue);
+        analogWrite(BLUE, blueValue);
+        analogWrite(BLUE2, blueValue);
+        analogWrite(GREEN, greenValue);
+        analogWrite(GREEN2, greenValue);
+      }
+    } else if (uuid == CHARACTERISTIC_RGB_UUID) {
+      if(value.length() == 3){
+        redValue = value[0];
+        greenValue = value[1];
+        blueValue = value[2];
+        if(isTurnOn){
+          analogWrite(RED, redValue);
+          analogWrite(RED2, redValue);
+          analogWrite(BLUE, blueValue);
+          analogWrite(BLUE2, blueValue);
+          analogWrite(GREEN, greenValue);
+          analogWrite(GREEN2, greenValue);
+        }
+        
+      }
+      
+    }
+
+
+
+  }
+
+} characteristicsCallBacks;
+
 
 void setup() {
   Serial.begin(115200);
+
+  NimBLEDevice::init("SVITILNIK");
+
+  NimBLEServer *pServer = NimBLEDevice::createServer();
+  pServer->setCallbacks(&serverCallBacks);
+
+  NimBLEService *pService = pServer->createService(SERVICE_UUID);
+  NimBLECharacteristic *pTurnOnOffCharacteristic = pService->createCharacteristic(CHARACTERISTIC_TURN_ON_OFF_UUID, NIMBLE_PROPERTY::WRITE_NR);
+  NimBLECharacteristic *pRGBCharacteristic = pService->createCharacteristic(CHARACTERISTIC_RGB_UUID, NIMBLE_PROPERTY::WRITE_NR);
+
+  pTurnOnOffCharacteristic->setCallbacks(&characteristicsCallBacks);
+  pRGBCharacteristic->setCallbacks(&characteristicsCallBacks);
+
+  NimBLEAdvertising *pAdvertising = NimBLEDevice::getAdvertising();
+  NimBLEAdvertisementData advData;
+  advData.setCompleteServices(NimBLEUUID(SERVICE_UUID));
+  pAdvertising->setAdvertisementData(advData);
+
+  NimBLEAdvertisementData scanData;
+  scanData.setName("SVITILNIK");
+  pAdvertising->setScanResponseData(scanData);
+
+  pAdvertising->start();
+
   pinMode(BLUE, OUTPUT);
   pinMode(GREEN, OUTPUT);
   pinMode(RED, OUTPUT);
   pinMode(BLUE2, OUTPUT);
   pinMode(GREEN2, OUTPUT);
   pinMode(RED2, OUTPUT);
+  
 }
 
 void loop() {
-  redValue = 255;
-  greenValue = 0;
-  blueValue = 0;
-  red2Value = 0;
-  green2Value = 0;
-  blue2Value = 255;
-
-  for(int i = 0; i<255; i++){
-    redValue -=1;
-    greenValue +=1;
-    blue2Value -=1;
-    green2Value +=1;
-    analogWrite(RED, redValue);
-    analogWrite(GREEN, greenValue);
-    analogWrite(BLUE2, blue2Value);
-    analogWrite(GREEN2, green2Value);
-    delay(delayTime);
-  }
-
-  redValue = 0;
-  greenValue = 255;
-  blueValue = 0;
-  red2Value = 0;
-  green2Value = 255;
-  blue2Value = 0;
-
-  for(int i = 0; i<255; i++){
-    greenValue -= 1;
-    blueValue  += 1;
-    green2Value -= 1;
-    red2Value +=1;
-    analogWrite(GREEN, greenValue);
-    analogWrite(BLUE, blueValue);
-    analogWrite(GREEN2, green2Value);
-    analogWrite(RED2, red2Value);
-    delay(delayTime);
-  }
-
-  redValue = 0;
-  greenValue = 0;
-  blueValue = 255;
-  red2Value = 255;
-  green2Value = 0;
-  blue2Value = 0;
-
-  for(int i = 0; i<255; i++){
-    blueValue -= 1;
-    redValue += 1;
-    red2Value -= 1;
-    blue2Value +=1;
-    analogWrite(BLUE, blueValue);
-    analogWrite(RED, redValue);
-    analogWrite(BLUE2, blue2Value);
-    analogWrite(RED2, red2Value);
-    delay(delayTime);
-  }
 }
