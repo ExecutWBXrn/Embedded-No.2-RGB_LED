@@ -14,3 +14,9 @@
   - RGB LED 2 PCS
   - 220Ω Resistor 6pcs
   - Breadboard Jumper Wire 9pcs
+
+### UI:
+
+<img width="333" height="721" alt="image" src="https://github.com/user-attachments/assets/4a0f9ec2-2132-4089-9501-c803d9f47c1e" />
+<img width="333" height="721" alt="image" src="https://github.com/user-attachments/assets/a8998c07-b203-4bb1-8ce4-54c01065abcc" />
+<img width="333" height="721" alt="image" src="https://github.com/user-attachments/assets/f03682ee-64d4-44f6-87d4-5d3cef66ad61" />
